@@ -8,6 +8,7 @@ build --cxxopt=-Wextra
 build --cxxopt=-Werror
 
 # Suppress GCC false positives in Abseil (known issue with InlinedVector)
+build --cxxopt=-Wno-unknown-warning-option
 build --cxxopt=-Wno-error=maybe-uninitialized
 
 # No exceptions needed (pure polynomial algebra, no OpenFHE)
@@ -18,7 +19,7 @@ build --cxxopt=-O2
 build --cxxopt=-g
 
 # Fast math for polynomial operations
-build --cxxopt=-ffast-math
+# build --cxxopt=-ffast-math
 
 # Test configuration
 test --test_output=errors
