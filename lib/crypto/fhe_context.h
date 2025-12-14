@@ -28,6 +28,76 @@
 // OpenFHE headers for BGV scheme
 #include "openfhe.h"
 
+/**
+ * Create a default FHE context configured for the BGV scheme and depth-0 operations.
+ *
+ * @returns FHEContext initialized with ring/modulus/security parameters suitable for this library,
+ *          or an error status if OpenFHE initialization fails.
+ */
+/**
+ * Generate a new FHE key pair and the necessary evaluation keys for depth-0 homomorphic ops.
+ *
+ * @returns FHEKeyPair containing the public key for encryption and the private key for decryption,
+ *          or an error status if key generation fails.
+ */
+/**
+ * Encrypt a polynomial represented by its coefficient vector with the given public key.
+ *
+ * @param coefficients Polynomial coefficients to encrypt; size must not exceed the ring dimension.
+ * @param public_key Recipient's public key used for encryption.
+ * @returns Ciphertext encrypting the provided polynomial, or an error status if encryption fails.
+ */
+/**
+ * Decrypt a ciphertext to recover the polynomial coefficients using the provided private key.
+ *
+ * @param ciphertext Encrypted polynomial to decrypt.
+ * @param private_key Private key used to decrypt the ciphertext.
+ * @returns Decrypted polynomial coefficients, or an error status if decryption fails.
+ */
+/**
+ * Compute the homomorphic sum of two ciphertexts.
+ *
+ * @param ct1 First encrypted polynomial operand.
+ * @param ct2 Second encrypted polynomial operand.
+ * @returns Ciphertext representing the encrypted element-wise sum, or an error status if the operation fails.
+ */
+/**
+ * Compute the homomorphic difference of two ciphertexts (ct1 - ct2).
+ *
+ * @param ct1 Minuend encrypted polynomial.
+ * @param ct2 Subtrahend encrypted polynomial.
+ * @returns Ciphertext representing the encrypted element-wise difference, or an error status if the operation fails.
+ */
+/**
+ * Multiply an encrypted polynomial by a plaintext scalar homomorphically.
+ *
+ * @param ciphertext Encrypted polynomial to scale.
+ * @param scalar Plaintext integer scalar multiplier.
+ * @returns Ciphertext representing the encrypted scaled polynomial, or an error status if the operation fails.
+ */
+/**
+ * Rotate the coefficients of an encrypted polynomial cyclically by a number of positions.
+ *
+ * @param ciphertext Encrypted polynomial to rotate.
+ * @param positions Number of positions to rotate (positive for left, negative for right).
+ * @returns Ciphertext representing the rotated encrypted polynomial, or an error status if the operation fails
+ *          or rotation evaluation keys have not been generated.
+ */
+/**
+ * Access the underlying OpenFHE crypto context.
+ *
+ * @returns The OpenFHE CryptoContext used by this FHEContext.
+ */
+/**
+ * Obtain the ring dimension used by the crypto context.
+ *
+ * @returns The ring dimension (number of coefficients) for polynomials in this context.
+ */
+/**
+ * Obtain the plaintext modulus used by the crypto context.
+ *
+ * @returns The modulus used for plaintext arithmetic in this context.
+ */
 namespace f2chat {
 
 // Real OpenFHE types for BGV scheme
