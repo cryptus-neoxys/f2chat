@@ -76,6 +76,22 @@ absl::StatusOr<FHEContext> FHEContext::Create() {
 - ✅ `lib/crypto/fhe_context.cc` - Fill in OpenFHE calls
 - ✅ `lib/crypto/encrypted_polynomial.cc:ProjectToCharacter()` - Homomorphic DFT
 - ✅ Update `third_party/openfhe.BUILD` for actual OpenFHE build
+- ✅ Benchmarking for FHE Operations
+
+| Benchmark              | Time        | CPU         | Iterations |
+| ---------------------- | ----------- | ----------- | ---------- |
+| BM_FHEContextCreation  | 945247 ns   | 944633 ns   | 717        |
+| BM_KeyGeneration       | 84475250 ns | 84433125 ns | 8          |
+| BM_Encryption          | 576970 ns   | 576855 ns   | 1185       |
+| BM_Decryption          | 134338 ns   | 134326 ns   | 5197       |
+| BM_HomomorphicAdd      | 8642 ns     | 8410 ns     | 88057      |
+| BM_HomomorphicSubtract | 7763 ns     | 7762 ns     | 90368      |
+| BM_ScalarMultiply      | 22815 ns    | 22813 ns    | 30771      |
+| BM_Rotation            | 389114 ns   | 389083 ns   | 1750       |
+| BM_CharacterProjection | 2902308 ns  | 2901959 ns  | 244        |
+| BM_FullCycle           | 723512 ns   | 722925 ns   | 964        |
+
+(All Benchmarks are in ns, done on my m4 macbook-air 16GB)
 
 ### 📋 Phase 3: Encrypted Mailbox Addressing (TODO)
 

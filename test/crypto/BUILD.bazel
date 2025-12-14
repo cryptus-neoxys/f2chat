@@ -1,3 +1,6 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
 cc_test(
     name = "polynomial_test",
     srcs = ["polynomial_test.cc"],
@@ -24,5 +27,17 @@ cc_test(
         "//lib/crypto:polynomial",
         "//lib/crypto:fhe_context",
         "@googletest//:gtest_main",
+    ],
+)
+
+cc_binary(
+    name = "fhe_benchmark",
+    srcs = ["fhe_benchmark.cc"],
+    copts = ["-fexceptions"],  # OpenFHE requires exceptions
+    deps = [
+        "//lib/crypto:encrypted_polynomial",
+        "//lib/crypto:polynomial",
+        "//lib/crypto:fhe_context",
+        "@google_benchmark//:benchmark_main",
     ],
 )
