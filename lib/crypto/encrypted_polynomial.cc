@@ -7,6 +7,59 @@
 
 namespace f2chat {
 
+namespace {
+// Helper: Compute modular exponentiation (base^exp mod modulus)
+int64_t ModPow(int64_t base, int64_t exp, int64_t modulus) {
+  int64_t result = 1;
+  base %= modulus;
+  while (exp > 0) {
+    if (exp & 1) {
+      result = (result * base) % modulus;
+    }
+    base = (base * base) % modulus;
+    exp >>= 1;
+  }
+  return result;
+}
+
+// Helper: Compute modular inverse using extended Euclidean algorithm
+int64_t ModInverse(int64_t a, int64_t modulus) {
+  int64_t m0 = modulus, t, q;
+  int64_t x0 = 0, x1 = 1;
+  
+  if (modulus == 1) return 0;
+  
+  while (a > 1) {
+    q = a / modulus;
+    t = modulus;
+    modulus = a % modulus;
+    a = t;
+    t = x0;
+    x0 = x1 - q * x0;
+    x1 = t;
+  }
+  
+  if (x1 < 0) x1 += m0;
+  return x1;
+}
+
+// Helper: Find a primitive nth root of unity modulo p
+// For p = 65537 and n dividing (p-1), we can find ω such that ω^n ≡ 1 (mod p)
+int64_t FindRootOfUnity(int n, int64_t modulus) {
+  // For modulus = 65537 = 2^16 + 1, we know p-1 = 2^16
+  // So any power of 2 divides (p-1)
+  
+  // A generator for Z_p^* is typically a small number
+  // For p = 65537, g = 3 is a generator
+  int64_t g = 3;
+  
+  // ω = g^((p-1)/n) is a primitive nth root of unity
+  int64_t exponent = (modulus - 1) / n;
+  return ModPow(g, exponent, modulus);
+}
+
+}  // namespace
+
 // Static factory: Encrypt plaintext polynomial
 absl::StatusOr<EncryptedPolynomial> EncryptedPolynomial::Encrypt(
     const Polynomial& polynomial,
@@ -96,38 +149,55 @@ absl::StatusOr<EncryptedPolynomial> EncryptedPolynomial::Negate(
 absl::StatusOr<EncryptedPolynomial> EncryptedPolynomial::ProjectToCharacter(
     int character_index,
     const FHEContext& fhe_context) const {
-  (void)fhe_context;  // Suppress unused parameter warning
-
   if (character_index < 0 || character_index >= RingParams::kNumCharacters) {
     return absl::InvalidArgumentError(absl::StrFormat(
         "Invalid character index: %d (must be 0 to %d)",
         character_index, RingParams::kNumCharacters - 1));
   }
 
-  // TODO: Implement homomorphic character projection
-  //
-  // Planned implementation:
-  // 1. Compute DFT basis weights for character χⱼ
-  // 2. For each position k, apply homomorphic rotation + scalar multiplication:
-  //    proj = Σₖ χⱼ(k) * Rotate(Enc(poly), k)
-  // 3. Scale by 1/n (using homomorphic scalar multiplication)
-  //
-  // This allows server to compute character projections on encrypted data!
-  //
-  // Formula:
-  //   Proj_χⱼ(Enc(p)) = (1/n) Σₖ χⱼ(k) * Enc(p(ωᵏ))
-  // where ω is a primitive nth root of unity.
-  //
-  // Example (for character 0, identity):
-  //   Enc(Proj_χ₀(p)) = (1/n) * Enc(sum of all coefficients)
-  //
-  // This is depth-0 because:
-  // - Rotation: depth-0 (automorphism)
-  // - Scalar multiplication: depth-0 (plaintext-ciphertext)
-  // - Addition: depth-0
-
-  return absl::UnimplementedError(
-      "EncryptedPolynomial::ProjectToCharacter() - Homomorphic DFT pending");
+  try {
+    const int n = RingParams::kNumCharacters;
+    const int64_t modulus = RingParams::kModulus;
+    
+    // Find primitive nth root of unity modulo p
+    int64_t omega = FindRootOfUnity(n, modulus);
+    
+    // Compute character projection using DFT formula:
+    // Proj_χⱼ(p) = (1/n) * Σₖ χⱼ(k) * p(ωᵏ)
+    // where χⱼ(k) = ω^(j*k) mod p
+    
+    // Start with the k=0 term (no rotation needed)
+    // χⱼ(0) = ω^0 = 1, so we just scale by 1
+    auto result = *this;
+    
+    // For each position k > 0, compute ω^(j*k) and add scaled rotated ciphertext
+    for (int k = 1; k < n; ++k) {
+      // Compute character value: χⱼ(k) = ω^(j*k) mod p
+      int64_t chi_jk = ModPow(omega, static_cast<int64_t>(character_index) * k, modulus);
+      
+      // Rotate ciphertext by k positions
+      auto rotated_or = Rotate(k, fhe_context);
+      if (!rotated_or.ok()) return rotated_or.status();
+      
+      // Scale by character value
+      auto scaled_or = rotated_or.value().MultiplyScalar(chi_jk, fhe_context);
+      if (!scaled_or.ok()) return scaled_or.status();
+      
+      // Add to accumulator
+      auto sum_or = result.Add(scaled_or.value(), fhe_context);
+      if (!sum_or.ok()) return sum_or.status();
+      
+      result = sum_or.value();
+    }
+    
+    // Scale by 1/n (modular inverse of n)
+    int64_t n_inv = ModInverse(n, modulus);
+    return result.MultiplyScalar(n_inv, fhe_context);
+    
+  } catch (const std::exception& e) {
+    return absl::InternalError(
+        absl::StrFormat("Character projection failed: %s", e.what()));
+  }
 }
 
 absl::StatusOr<std::vector<EncryptedPolynomial>>

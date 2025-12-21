@@ -27,7 +27,9 @@ Build a **truly metadata-private messaging system** where the server performs bl
 ## 📊 Development Status
 
 ### ✅ Phase 1: Plaintext Polynomial Routing (COMPLETE)
+
 **Status**: 32 tests passing, 1,340 lines of code
+
 - ✅ Polynomial ring operations (Z_p[x]/(x^n + 1))
 - ✅ Polynomial identities (device-held, unlinkable)
 - ✅ Algebraic routing (polynomial encoding/decoding)
@@ -38,9 +40,11 @@ Build a **truly metadata-private messaging system** where the server performs bl
 **Limitation**: Server sees plaintext polynomial IDs - not true FHE!
 
 ### 🚧 Phase 2: FHE Infrastructure (IN PROGRESS)
+
 **Status**: 9 FHE tests passing (stubs), infrastructure in place
 
 #### ✅ Completed (2025-11-11):
+
 - ✅ OpenFHE dependency added to MODULE.bazel
 - ✅ FHEContext wrapper (`lib/crypto/fhe_context.{h,cc}`)
 - ✅ EncryptedPolynomial class (`lib/crypto/encrypted_polynomial.{h,cc}`)
@@ -48,7 +52,8 @@ Build a **truly metadata-private messaging system** where the server performs bl
 - ✅ Test structure for FHE operations
 - ✅ Build system configured
 
-#### 🔨 TODO - OpenFHE Integration:
+#### ✅ OpenFHE Integration (2025-12-14):
+
 ```cpp
 // lib/crypto/fhe_context.cc - Lines 35-62
 // Current: UnimplementedError stubs
@@ -68,12 +73,13 @@ absl::StatusOr<FHEContext> FHEContext::Create() {
 }
 ```
 
-**Files to implement**:
-1. `lib/crypto/fhe_context.cc` - Fill in OpenFHE calls
-2. `lib/crypto/encrypted_polynomial.cc:ProjectToCharacter()` - Homomorphic DFT
-3. Update `third_party/openfhe.BUILD` for actual OpenFHE build
+- ✅ `lib/crypto/fhe_context.cc` - Fill in OpenFHE calls
+- ✅ `lib/crypto/encrypted_polynomial.cc:ProjectToCharacter()` - Homomorphic DFT
+- ✅ Update `third_party/openfhe.BUILD` for actual OpenFHE build
+- ✅ Benchmarking for FHE Operations (TODO: add stable benchmark results)
 
 ### 📋 Phase 3: Encrypted Mailbox Addressing (TODO)
+
 **Goal**: Server stores messages at encrypted mailbox locations
 
 ```cpp
@@ -91,12 +97,14 @@ class EncryptedMailbox {
 ```
 
 **Tasks**:
+
 - [ ] Create `lib/network/encrypted_mailbox.{h,cc}`
 - [ ] Implement homomorphic mailbox ID computation
 - [ ] Update server to use encrypted storage
 - [ ] Test: Server cannot determine which mailbox
 
 ### 📋 Phase 4: Homomorphic Routing (TODO)
+
 **Goal**: Apply wreath-sheaf routing on encrypted polynomials
 
 ```cpp
@@ -114,12 +122,14 @@ class RoutingPolynomial {
 ```
 
 **Tasks**:
+
 - [ ] Implement `HomomorphicEncodeRoute()`
 - [ ] Update `lib/network/patch.{h,cc}` for encrypted character projections
 - [ ] Update `lib/network/sheaf_router.{h,cc}` for encrypted routing
 - [ ] Test: Decrypt(ServerRoute(Enc(msg))) == msg
 
 ### 📋 Phase 5: Private Information Retrieval (TODO)
+
 **Goal**: Bob retrieves messages without revealing his mailbox
 
 ```cpp
@@ -141,17 +151,20 @@ class PIRServer {
 ```
 
 **Options**:
+
 1. Integrate SealPIR (Microsoft Research, BFV-based)
 2. Use SimplePIR (lattice-based, might be lighter)
 3. Implement custom PIR using OpenFHE primitives
 
 **Tasks**:
+
 - [ ] Research: SealPIR vs SimplePIR vs custom
 - [ ] Add PIR dependency to MODULE.bazel
 - [ ] Implement PIR client/server
 - [ ] Test: Server learns nothing about query
 
 ### 📋 Phase 6: End-to-End Integration (TODO)
+
 **Goal**: Full Alice → Bob flow with zero server knowledge
 
 ```cpp
@@ -169,6 +182,7 @@ TEST(AliceToBobFHETest, TrueBlindRouting) {
 ```
 
 **Success Criteria**:
+
 - ✅ Server never calls Decrypt()
 - ✅ Server never sees plaintext polynomial IDs
 - ✅ Server never sees plaintext mailbox IDs
@@ -180,6 +194,7 @@ TEST(AliceToBobFHETest, TrueBlindRouting) {
 ## 🏗️ Architecture
 
 ### Current (Phase 1 - Plaintext Routing)
+
 ```
 Alice Device:
 ├─ Real ID: "alice@example.com" (never sent)
@@ -197,6 +212,7 @@ Bob Device:
 ```
 
 ### Target (Phase 2+ - True FHE Routing)
+
 ```
 Alice Device:
 ├─ Real ID: "alice@example.com" (never sent)
@@ -225,6 +241,7 @@ Bob Device:
 ## 📁 File Structure
 
 ### Existing Files (Phase 1)
+
 ```
 lib/crypto/
 ├── polynomial.{h,cc}              # Ring operations (Z_p[x]/(x^n+1))
@@ -248,6 +265,7 @@ test/
 ```
 
 ### New Files (Phase 2+)
+
 ```
 lib/crypto/
 ├── fhe_context.{h,cc}              # ✅ CREATED - OpenFHE wrapper (stubs)
@@ -271,6 +289,7 @@ third_party/
 ## 🚀 Quick Start (Current State)
 
 ### Build & Test (Phase 1 - Plaintext)
+
 ```bash
 # Build all libraries
 bazel build //lib/...
@@ -283,6 +302,7 @@ bazel test //test/integration:alice_to_bob_test --test_output=all
 ```
 
 ### Test FHE Infrastructure (Phase 2 - Stubs)
+
 ```bash
 # Test encrypted polynomial (9 tests - all return UnimplementedError)
 bazel test //test/crypto:encrypted_polynomial_test --test_output=all
@@ -295,23 +315,27 @@ bazel test //test/crypto:encrypted_polynomial_test --test_output=all
 ## 🔬 Research Foundation
 
 This project implements:
+
 > **"An Algebraic Theory of Learnability: Solving Diverse Problems with a Unified Sheaf-Wreath Attention"**
 > bon-cdp (shakilflynn@gmail.com), November 2025: https://github.com/bon-cdp/notes/blob/main/c.pdf
 
 ### Key Theoretical Components
 
 **Wreath Product** (Position-Dependent Routing):
+
 - Network positions have character distributions (DFT basis)
 - Routing weights: `w[position][character]`
 - Learned via closed-form solve: `w* = (A^H A)^{-1} A^H b` (Theorem 2.1)
 
 **Sheaf** (Global Consistency):
+
 - Network divided into patches (geographic regions)
 - Each patch has local routing algebra
 - Gluing constraints ensure message delivery
 - Zero cohomological obstruction = guaranteed delivery
 
 **FHE Application** (Novel Contribution):
+
 - Server applies wreath-sheaf routing to **encrypted polynomials**
 - Position-dependent weights applied homomorphically
 - Character projections computed via homomorphic DFT
@@ -322,12 +346,15 @@ This project implements:
 ## 🎯 Next Steps for Engineers
 
 ### 🔥 IMMEDIATE (This Week):
+
 1. **Implement OpenFHE Integration** (`lib/crypto/fhe_context.cc`)
+
    - Replace UnimplementedError stubs with OpenFHE BGV calls
    - File: Lines 35-180
    - Estimated: 4-6 hours
 
 2. **Implement Homomorphic Character Projection** (`lib/crypto/encrypted_polynomial.cc`)
+
    - ProjectToCharacter() - Line 96
    - Homomorphic DFT on encrypted polynomials
    - Estimated: 6-8 hours
@@ -338,13 +365,16 @@ This project implements:
    - Estimated: 2 hours
 
 ### 📅 SHORT TERM (Next 2 Weeks):
+
 1. **Encrypted Mailbox Addressing** (Phase 3)
+
    - Create `lib/network/encrypted_mailbox.{h,cc}`
    - Homomorphic mailbox ID computation
    - Server-side blind storage
    - Estimated: 3-4 days
 
 2. **Homomorphic Routing** (Phase 4)
+
    - Implement `HomomorphicEncodeRoute()`
    - Update patch/sheaf router for encrypted data
    - Estimated: 4-5 days
@@ -355,6 +385,7 @@ This project implements:
    - Estimated: 5-7 days
 
 ### 🎯 MILESTONE (End of Month):
+
 - ✅ Full Alice → Bob FHE routing test passing
 - ✅ Server performs zero decryptions
 - ✅ Depth-0 operations verified
@@ -365,16 +396,20 @@ This project implements:
 ## 📚 Resources for Engineers
 
 ### OpenFHE Documentation
+
 - **Main docs**: https://openfhe-development.readthedocs.io/
 - **BGV examples**: `openfhe-development/src/pke/examples/`
 - **API reference**: https://openfhe-development.readthedocs.io/en/latest/api.html
 
 ### Key Papers
+
 1. OpenFHE library paper: https://eprint.iacr.org/2022/915.pdf
 2. SealPIR: https://github.com/microsoft/SealPIR
 3. BGV scheme: https://eprint.iacr.org/2011/277.pdf
+4. **[Prerequisite Reading List](docs/reading_list.md)**: Essential reading for new contributors.
 
 ### Our Theory Paper
+
 - See: `docs/sheaf_wreath_theory.pdf` (LaTeX source included)
 - Key insight: Optimization replaced by algebra when problem has right symmetry
 
@@ -383,11 +418,13 @@ This project implements:
 ## 🐛 Known Issues & Limitations
 
 ### Phase 1 (Plaintext):
+
 - ❌ Server sees plaintext polynomial IDs (not true metadata privacy)
 - ❌ No actual encryption (just "unlinkable" pseudonyms)
 - ✅ But: Routing algebra is correct (ready for FHE!)
 
 ### Phase 2 (Current):
+
 - ⚠️ OpenFHE integration incomplete (stubs return UnimplementedError)
 - ⚠️ Homomorphic character projection not implemented
 - ⚠️ No encrypted mailbox addressing yet
@@ -412,6 +449,7 @@ Apache 2.0 - See LICENSE
 ## 🙏 Acknowledgments
 
 This project builds on:
+
 - OpenFHE team for the incredible FHE library
 - Microsoft Research for SealPIR
 - Sheaf theory (algebraic topology)

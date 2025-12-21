@@ -1,0 +1,2 @@
+# third_party/ directory marker for Bazel
+# This package contains external library build files

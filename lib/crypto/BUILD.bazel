@@ -1,3 +1,5 @@
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
 cc_library(
     name = "polynomial",
     hdrs = [
@@ -45,12 +47,13 @@ cc_library(
     name = "fhe_context",
     hdrs = ["fhe_context.h"],
     srcs = ["fhe_context.cc"],
+    copts = ["-fexceptions"],  # OpenFHE requires exceptions
     deps = [
         ":polynomial",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
-        # "@openfhe//:openfhe_pke",  # Uncomment when OpenFHE build is working
+        "@openfhe//:openfhe_pke",
     ],
     visibility = ["//visibility:public"],
 )
@@ -59,6 +62,7 @@ cc_library(
     name = "encrypted_polynomial",
     hdrs = ["encrypted_polynomial.h"],
     srcs = ["encrypted_polynomial.cc"],
+    copts = ["-fexceptions"],  # OpenFHE requires exceptions
     deps = [
         ":polynomial",
         ":fhe_context",

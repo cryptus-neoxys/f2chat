@@ -25,27 +25,18 @@
 #include "absl/status/statusor.h"
 #include "absl/status/status.h"
 
-// Forward declarations for OpenFHE types (to avoid exposing in header)
-// Note: These are stub declarations for now. When OpenFHE is integrated,
-// we'll include the actual OpenFHE headers.
-namespace lbcrypto {
-  class DCRTPoly;
-  template <typename Element> class CryptoContextImpl;
-  template <typename Element> class CiphertextImpl;
-  template <typename Element> class PublicKeyImpl;
-  template <typename Element> class PrivateKeyImpl;
-}
+// OpenFHE headers for BGV scheme
+#include "openfhe.h"
 
 namespace f2chat {
 
-// Stub types for OpenFHE (will be replaced when OpenFHE is integrated)
-// Using void* as placeholder to avoid template issues
-using CryptoContext = std::shared_ptr<void>;
-using Ciphertext = std::shared_ptr<void>;
-using Plaintext = std::shared_ptr<void>;
-using PublicKey = std::shared_ptr<void>;
-using PrivateKey = std::shared_ptr<void>;
-using KeyPair = std::shared_ptr<void>;
+// Real OpenFHE types for BGV scheme
+using CryptoContext = lbcrypto::CryptoContext<lbcrypto::DCRTPoly>;
+using Ciphertext = lbcrypto::Ciphertext<lbcrypto::DCRTPoly>;
+using Plaintext = lbcrypto::Plaintext;
+using PublicKey = lbcrypto::PublicKey<lbcrypto::DCRTPoly>;
+using PrivateKey = lbcrypto::PrivateKey<lbcrypto::DCRTPoly>;
+using KeyPair = lbcrypto::KeyPair<lbcrypto::DCRTPoly>;
 
 // FHE key pair for a user (public key shared, private key device-held).
 struct FHEKeyPair {
