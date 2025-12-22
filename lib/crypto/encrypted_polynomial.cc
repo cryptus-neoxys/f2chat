@@ -8,7 +8,16 @@
 namespace f2chat {
 
 namespace {
-// Helper: Compute modular exponentiation (base^exp mod modulus)
+/**
+ * @brief Computes the modular exponentiation of a base raised to an exponent.
+ *
+ * Computes (base^exp) mod modulus.
+ *
+ * @param base The base value. If negative, behavior depends on the platform's `%` for negatives; prefer passing a non-negative base.
+ * @param exp Non-negative exponent (must be >= 0).
+ * @param modulus Modulus value (must be > 0).
+ * @return int64_t The value (base^exp) mod modulus in the range [0, modulus-1] when `modulus > 0`.
+ */
 int64_t ModPow(int64_t base, int64_t exp, int64_t modulus) {
   int64_t result = 1;
   base %= modulus;
@@ -22,7 +31,18 @@ int64_t ModPow(int64_t base, int64_t exp, int64_t modulus) {
   return result;
 }
 
-// Helper: Compute modular inverse using extended Euclidean algorithm
+/**
+ * @brief Computes the modular multiplicative inverse of `a` modulo `modulus`.
+ *
+ * Uses the extended Euclidean algorithm to produce an integer `x` such that
+ * (a * x) mod modulus == 1 when `a` and `modulus` are coprime.
+ *
+ * @param a Value whose modular inverse is sought.
+ * @param modulus Modulus for the inverse computation.
+ * @return int64_t Modular inverse in the range [0, modulus - 1]; returns 0 when `modulus == 1`.
+ *
+ * @note The result is only a valid multiplicative inverse when `gcd(a, modulus) == 1`.
+ */
 int64_t ModInverse(int64_t a, int64_t modulus) {
   int64_t m0 = modulus, t, q;
   int64_t x0 = 0, x1 = 1;
@@ -44,7 +64,17 @@ int64_t ModInverse(int64_t a, int64_t modulus) {
 }
 
 // Helper: Find a primitive nth root of unity modulo p
-// For p = 65537 and n dividing (p-1), we can find ω such that ω^n ≡ 1 (mod p)
+/**
+ * @brief Finds a primitive n-th root of unity modulo the given modulus.
+ *
+ * Computes a value ω such that ω^n ≡ 1 (mod modulus). This function assumes
+ * that n divides (modulus - 1) and that modulus is the prime 65537; it uses
+ * 3 as a multiplicative generator for Z_modulus^* and returns 3^((modulus-1)/n) mod modulus.
+ *
+ * @param n The order of the root of unity to find; must divide (modulus - 1).
+ * @param modulus The modulus to operate in (expected 65537).
+ * @return int64_t A primitive n-th root of unity modulo modulus.
+ */
 int64_t FindRootOfUnity(int n, int64_t modulus) {
   // For modulus = 65537 = 2^16 + 1, we know p-1 = 2^16
   // So any power of 2 divides (p-1)
@@ -60,7 +90,14 @@ int64_t FindRootOfUnity(int n, int64_t modulus) {
 
 }  // namespace
 
-// Static factory: Encrypt plaintext polynomial
+/**
+ * @brief Encrypts a plaintext polynomial using the provided public key and FHE context.
+ *
+ * @param polynomial Plaintext polynomial to encrypt.
+ * @param public_key Public key used for encryption.
+ * @param fhe_context Context providing FHE operations and parameters.
+ * @return absl::StatusOr<EncryptedPolynomial> EncryptedPolynomial constructed from the resulting ciphertext on success; an error status on failure.
+ */
 absl::StatusOr<EncryptedPolynomial> EncryptedPolynomial::Encrypt(
     const Polynomial& polynomial,
     const PublicKey& public_key,
@@ -145,7 +182,17 @@ absl::StatusOr<EncryptedPolynomial> EncryptedPolynomial::Negate(
   return MultiplyScalar(-1, fhe_context);
 }
 
-// Character projection (homomorphic DFT)
+/**
+ * @brief Projects an encrypted polynomial onto a single character index using a homomorphic DFT.
+ *
+ * Computes the projection χ_j applied to the encrypted polynomial:
+ * Proj_χ_j(p) = (1/n) * Σ_{k=0}^{n-1} χ_j(k) * Rotate(p, k),
+ * where χ_j(k) = ω^{j*k} in the ring modulus and ω is a primitive n-th root of unity.
+ *
+ * @param character_index Index of the character to project onto (0 .. RingParams::kNumCharacters-1).
+ * @param fhe_context Context providing homomorphic operations required for rotations, additions, and scalar multiplications.
+ * @return absl::StatusOr<EncryptedPolynomial> The encrypted polynomial projected to the requested character on success; an error Status on failure.
+ */
 absl::StatusOr<EncryptedPolynomial> EncryptedPolynomial::ProjectToCharacter(
     int character_index,
     const FHEContext& fhe_context) const {
@@ -200,6 +247,12 @@ absl::StatusOr<EncryptedPolynomial> EncryptedPolynomial::ProjectToCharacter(
   }
 }
 
+/**
+ * @brief Compute homomorphic projections of this encrypted polynomial onto every character in the ring.
+ *
+ * @param fhe_context FHE evaluation context used to perform the required homomorphic operations (rotations, scalar multiplies, additions).
+ * @return std::vector<EncryptedPolynomial> Vector of projections where element `j` is the projection onto character index `j` (indices 0..RingParams::kNumCharacters-1); on failure returns the corresponding error status.
+ */
 absl::StatusOr<std::vector<EncryptedPolynomial>>
 EncryptedPolynomial::ProjectToAllCharacters(
     const FHEContext& fhe_context) const {

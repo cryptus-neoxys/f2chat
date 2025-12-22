@@ -7,7 +7,15 @@
 
 namespace f2chat {
 
-// Static factory method
+/**
+ * @brief Constructs a depth-0 BGV-RNS crypto context configured for batching and 128-bit security and returns it wrapped in an FHEContext.
+ *
+ * The created context is configured for multiplicative depth 0 (no ciphertext-ciphertext multiplications),
+ * uses RingParams::kModulus as the plaintext modulus, requests RingParams::kDegree batching slots,
+ * and targets 128-bit security. The context has PKE, KEYSWITCH and LEVELEDSHE features enabled.
+ *
+ * @return absl::StatusOr<FHEContext> FHEContext on success; `absl::InternalError` with a diagnostic message on failure.
+ */
 absl::StatusOr<FHEContext> FHEContext::Create() {
   try {
     // Create BGV parameters for depth-0 operations
@@ -43,6 +51,18 @@ absl::StatusOr<FHEContext> FHEContext::Create() {
   }
 }
 
+/**
+ * @brief Generates a public/secret key pair and necessary evaluation keys.
+ *
+ * Generates a fresh public/private key pair and produces evaluation keys required
+ * for homomorphic operations: evaluation multiplication keys and rotation keys
+ * for positions ±1 through ±(RingParams::kDegree - 1).
+ *
+ * @pre The internal crypto context must be initialized.
+ * @return FHEKeyPair Containing the generated public and private keys on success.
+ *         Returns an `absl::FailedPreconditionError` if the crypto context is not
+ *         initialized, or an `absl::InternalError` if key generation fails.
+ */
 absl::StatusOr<FHEKeyPair> FHEContext::GenerateKeyPair() const {
   if (!crypto_context_) {
     return absl::FailedPreconditionError("Crypto context not initialized");
@@ -72,6 +92,22 @@ absl::StatusOr<FHEKeyPair> FHEContext::GenerateKeyPair() const {
   }
 }
 
+/**
+ * @brief Encrypts a vector of integer coefficients into a packed ciphertext.
+ *
+ * The input coefficients are interpreted as the polynomial/plaintext slots (batched)
+ * with values reduced modulo the scheme plaintext modulus. The vector length
+ * must not exceed the ring dimension returned by ring_dimension().
+ *
+ * @param coefficients Plaintext coefficients to pack and encrypt; each value is
+ *                     treated modulo the scheme's plaintext modulus. The number
+ *                     of coefficients must be <= RingParams::kDegree.
+ * @param public_key Public key used for encryption.
+ * @return Ciphertext Packed ciphertext containing the encrypted coefficients on
+ *         success; an error Status otherwise (e.g., failed precondition if the
+ *         crypto context is uninitialized, invalid argument if too many
+ *         coefficients, or internal error on encryption failure).
+ */
 absl::StatusOr<Ciphertext> FHEContext::Encrypt(
     const std::vector<int64_t>& coefficients,
     const PublicKey& public_key) const {
@@ -99,6 +135,20 @@ absl::StatusOr<Ciphertext> FHEContext::Encrypt(
   }
 }
 
+/**
+ * Decrypts a ciphertext with the provided private key and returns the packed polynomial coefficients.
+ *
+ * Decrypts into a plaintext, extracts the packed values (polynomial coefficients), and trims
+ * the result to the configured ring degree if it is longer.
+ *
+ * @param ciphertext Ciphertext to decrypt.
+ * @param private_key Secret key used for decryption.
+ * @returns std::vector<int64_t> Vector of polynomial coefficients (resized to at most RingParams::kDegree).
+ *
+ * @remarks
+ * Returns a FailedPreconditionError if the crypto context is not initialized.
+ * Returns an InternalError if an exception occurs during decryption.
+ */
 absl::StatusOr<std::vector<int64_t>> FHEContext::Decrypt(
     const Ciphertext& ciphertext,
     const PrivateKey& private_key) const {
@@ -125,7 +175,23 @@ absl::StatusOr<std::vector<int64_t>> FHEContext::Decrypt(
   }
 }
 
-// Homomorphic operations
+/**
+ * Adds two ciphertexts homomorphically, producing a ciphertext that encrypts the
+ * coefficient-wise sum of the inputs.
+ *
+ * Both inputs must be ciphertexts produced by this context (compatible parameters
+ * and keys). Returns an error if the internal crypto context is not initialized
+ * or if the underlying homomorphic operation fails.
+ *
+ * @param ct1 First addend ciphertext.
+ * @param ct2 Second addend ciphertext.
+ * @return Ciphertext Ciphertext encrypting the sum of `ct1` and `ct2`.
+ *
+ * @details
+ * On failure this function returns `absl::FailedPreconditionError` when the
+ * context is uninitialized, or `absl::InternalError` if the underlying library
+ * throws an exception during evaluation.
+ */
 
 absl::StatusOr<Ciphertext> FHEContext::HomomorphicAdd(
     const Ciphertext& ct1,
@@ -144,6 +210,14 @@ absl::StatusOr<Ciphertext> FHEContext::HomomorphicAdd(
   }
 }
 
+/**
+ * Performs homomorphic subtraction of two ciphertexts, producing a ciphertext
+ * that decrypts to the coefficient-wise difference (ct1 minus ct2).
+ *
+ * @param ct1 Minuend ciphertext.
+ * @param ct2 Subtrahend ciphertext.
+ * @return Ciphertext containing the result of ct1 - ct2 on the underlying plaintexts if successful; an error status otherwise.
+ */
 absl::StatusOr<Ciphertext> FHEContext::HomomorphicSubtract(
     const Ciphertext& ct1,
     const Ciphertext& ct2) const {
@@ -164,7 +238,18 @@ absl::StatusOr<Ciphertext> FHEContext::HomomorphicSubtract(
 // Since this is depth-0 BGV (no multiplicative depth available)
 // True homomorphic multiplication (EvalMult) isn't possible without consuming depth
 // For depth-0 BGV, we use repeated addition for scalar multiplication
-// This is less efficient than EvalMult but works with depth-0
+/**
+ * @brief Computes the homomorphic product of a ciphertext and an integer scalar.
+ *
+ * Multiplies the provided ciphertext by `scalar` in the encrypted domain and
+ * returns a new ciphertext encoding the result. Negative `scalar` values are
+ * supported (the result is negated accordingly); `scalar == 0` yields an
+ * encryption of zero; `scalar == 1` returns the original ciphertext.
+ *
+ * @param ciphertext Input ciphertext to be scaled.
+ * @param scalar Integer factor to multiply the ciphertext by; may be negative.
+ * @return Ciphertext Encrypted result of `ciphertext * scalar`.
+ */
 absl::StatusOr<Ciphertext> FHEContext::HomomorphicMultiplyScalar(
     const Ciphertext& ciphertext,
     int64_t scalar) const {
@@ -216,6 +301,13 @@ absl::StatusOr<Ciphertext> FHEContext::HomomorphicMultiplyScalar(
   }
 }
 
+/**
+ * @brief Performs a cyclic rotation of the packed plaintext slots inside a ciphertext.
+ *
+ * @param ciphertext Ciphertext whose packed slots will be rotated.
+ * @param positions Number of slot positions to rotate; positive values rotate in the forward direction and negative values rotate in the opposite direction.
+ * @return Ciphertext Ciphertext whose underlying plaintext slots have been cyclically rotated by `positions`.
+ */
 absl::StatusOr<Ciphertext> FHEContext::HomomorphicRotate(
     const Ciphertext& ciphertext,
     int positions) const {
