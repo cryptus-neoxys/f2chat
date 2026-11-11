@@ -36,8 +36,16 @@ cmake(
         "MATHBACKEND": "4",
         "WITH_TCM": "OFF",
         "GIT_SUBMOD_AUTO": "OFF",  # Disable git submodule auto-download
-        # Enable C++ exceptions and disable strict warnings, add cereal include path
-        "CMAKE_CXX_FLAGS": "-fexceptions -Wno-unused-parameter -Wno-error -Wno-missing-field-initializers -I$$EXT_BUILD_DEPS$$/include",
+        # Enable C++ exceptions and disable strict warnings, add cereal include path.
+        # -Wno-error=extra: OpenFHE v1.2.1 hardcodes -Wall -Werror in its
+        # CMakeLists and appends it after these flags, so a blanket
+        # -Wno-error here loses the ordering. GCC 15 warns under -Wextra on
+        # its enum and int conditional expressions
+        # (bgvrns-parametergeneration.cpp:381, -Werror=extra). A per warning
+        # exemption survives a later blanket -Werror, so pin only -Wextra
+        # and leave every other warning fatal. Scoped to this vendored
+        # build only.
+        "CMAKE_CXX_FLAGS": "-fexceptions -Wno-unused-parameter -Wno-error -Wno-error=extra -Wno-missing-field-initializers -I$$EXT_BUILD_DEPS$$/include",
     },
     targets = [
         "OPENFHEcore_static",
