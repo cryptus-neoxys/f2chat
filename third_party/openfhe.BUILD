@@ -17,8 +17,8 @@ cmake(
     name = "openfhe_cmake",
     lib_source = ":all_srcs",
     out_static_libs = [
-        "libOPENFHEcore_static.a",
         "libOPENFHEpke_static.a",
+        "libOPENFHEcore_static.a",
     ],
     out_include_dir = "include/openfhe",
     deps = ["@cereal//:cereal"],
