@@ -34,6 +34,13 @@ cc_library(
     name = "routing_polynomial",
     hdrs = ["routing_polynomial.h"],
     srcs = ["routing_polynomial.cc"],
+    # GCC 13+ -Warray-bounds false positive on EmbedMailboxID: the copy loop
+    # is guarded by (i + kMailboxIDSize) < embedded_coeffs.size(), so the
+    # write at index i + kMailboxIDSize is always in bounds. GCC cannot
+    # prove that through the size_t loop induction and reports subscript 64
+    # as outside the bounds. Keep the warning, just do not error, and scope
+    # this to this target rather than disabling it project-wide.
+    copts = ["-Wno-error=array-bounds"],
     deps = [
         ":polynomial",
         "@com_google_absl//absl/status",
